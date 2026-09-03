@@ -6,7 +6,7 @@ from fastapi import HTTPException
 
 from ..database import get_supabase
 from ..config import get_settings
-from ..graph import generate_reply, is_emotional_support_message, OFF_TOPIC_REPLY
+from ..graph import generate_reply, is_off_topic_request, OFF_TOPIC_REPLY
 from ..schemas import ChatOut, MessageOut
 
 
