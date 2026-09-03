@@ -6,7 +6,7 @@ from fastapi import HTTPException
 
 from ..database import get_supabase
 from ..config import get_settings
-from ..graph import generate_reply
+from ..graph import generate_reply, is_emotional_support_message, OFF_TOPIC_REPLY
 from ..schemas import ChatOut, MessageOut
 
 
@@ -87,7 +87,10 @@ def send_message(chat_id: str, content: str) -> tuple[MessageOut, MessageOut, Ch
         .data[0]
     )
 
-    reply_text = generate_reply(thread_id=chat_id, history=history, new_user_message=content)
+    if is_emotional_support_message(content):
+        reply_text = generate_reply(thread_id=chat_id, history=history, new_user_message=content)
+    else:
+        reply_text = OFF_TOPIC_REPLY
 
     assistant_row = (
         db.table("messages")
