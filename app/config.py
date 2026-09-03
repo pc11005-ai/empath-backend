@@ -1,3 +1,10 @@
+"""
+Centralised app configuration.
+
+All secrets (Supabase service key, Gemini API key) are read from environment
+variables on the server only. They are never sent to, or read by, the
+frontend in any way.
+"""
 from functools import lru_cache
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -8,6 +15,7 @@ class Settings(BaseSettings):
 
     gemini_api_key: str
     gemini_model: str = "gemini-3.7-flash"
+    gemini_classifier_model: str = "gemini-3.5-flash-lite"
 
     cors_origins: str = "*"
     trash_retention_days: int = 30
