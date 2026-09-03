@@ -1,41 +1,26 @@
-from contextlib import asynccontextmanager
-
-from apscheduler.schedulers.background import BackgroundScheduler
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-
-from .config import get_settings
-from .routers import chats, trash
-from .services.cleanup_service import purge_expired_trash
-
-scheduler = BackgroundScheduler()
+from functools import lru_cache
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Run once on startup, then daily, so Trash empties itself over time
-    # even if nobody opens the Trash view.
-    scheduler.add_job(purge_expired_trash, "interval", days=1, id="purge_trash")
-    scheduler.start()
-    yield
-    scheduler.shutdown(wait=False)
+class Settings(BaseSettings):
+    supabase_url: str
+    supabase_service_key: str
+
+    gemini_api_key: str
+    gemini_model: str = "gemini-3.7-flash"
+
+    cors_origins: str = "*"
+    trash_retention_days: int = 30
+
+    model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        if self.cors_origins.strip() == "*":
+            return ["*"]
+        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
 
 
-app = FastAPI(title="EmPath API", version="1.0.0", lifespan=lifespan)
-
-settings = get_settings()
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origin_list,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-app.include_router(chats.router)
-app.include_router(trash.router)
-
-
-@app.get("/health")
-def health():
-    return {"status": "ok", "service": "EmPath API"}
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()
