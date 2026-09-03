@@ -54,7 +54,15 @@ OFF_TOPIC_REPLY = (
 )
 
 CLASSIFIER_PROMPT = (
-    "Is this message related to emotional support or personal feelings? "
+    "Decide whether this message is clearly asking for something EmPath "
+    "should refuse: programming/coding help, or a general-knowledge/trivia/"
+    "factual lookup with no personal or emotional context.\n\n"
+    "Respond NO (meaning EmPath should reply normally) for greetings, small "
+    "talk, introductions, or anything about feelings, stress, relationships, "
+    "or life in general — even if brief or casual, and even if a coding or "
+    "factual request is mixed in alongside something personal.\n\n"
+    "Respond YES only if the message is clearly and only a request for code, "
+    "a technical solution, or a factual/trivia answer.\n\n"
     "Respond with exactly one word: YES or NO. No punctuation, no explanation.\n\n"
     "Message: {message}"
 )
@@ -78,8 +86,6 @@ def _build_llm(model: str, temperature: float = 0.7, max_output_tokens: int | No
 
 def _chat_node(state: ChatState) -> ChatState:
     settings = get_settings()
-    # max_output_tokens caps how long a reply can run, which is one of the
-    # biggest levers on response time for a chat like this.
     llm = _build_llm(settings.gemini_model, temperature=0.7, max_output_tokens=600)
     messages = state["messages"]
     if not messages or not isinstance(messages[0], SystemMessage):
@@ -99,11 +105,13 @@ def _build_graph():
 _COMPILED_GRAPH = _build_graph()
 
 
-def is_emotional_support_message(text: str) -> bool:
+def is_off_topic_request(text: str) -> bool:
     """
-    Fast, cheap pre-check using a lightweight model: is this message about
-    feelings / emotional support at all? Runs before the main model so we
-    never spend its quota or time on coding help, trivia, etc.
+    Fast, cheap pre-check using a lightweight model: is this CLEARLY a
+    coding/trivia request with no emotional or personal content? Runs
+    before the main model so we never spend its quota or time on that —
+    but defaults to letting ambiguous messages (greetings, small talk)
+    through to a normal warm reply.
     """
     settings = get_settings()
     classifier = _build_llm(settings.gemini_classifier_model, temperature=0, max_output_tokens=5)
