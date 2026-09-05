@@ -87,11 +87,11 @@ def send_message(chat_id: str, content: str) -> tuple[MessageOut, MessageOut, Ch
         .data[0]
     )
 
-     if is_off_topic_request(content):
+    if is_off_topic_request(content):
         reply_text = OFF_TOPIC_REPLY
     else:
         reply_text = generate_reply(thread_id=chat_id, history=history, new_user_message=content)
-    
+
     assistant_row = (
         db.table("messages")
         .insert({"chat_id": chat_id, "role": "assistant", "content": reply_text})
